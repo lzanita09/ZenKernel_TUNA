@@ -525,6 +525,8 @@ static ssize_t store_uv_mv_table(struct cpufreq_policy *policy,
 			if(ret != 1) {
 				return -EINVAL;
 			}
+			if ( volt_cur > 1400 )
+                                volt_cur = 1400;
 
 			/* Alter voltage. First do it in our opp */
 			opp_cur = opp_find_freq_exact(mpu_dev,

@@ -458,6 +458,12 @@ static inline int twl6030_mmc_card_detect(struct device *dev, int slot)
 #define TWL6030_PHOENIX_DEV_ON			0x06
 
 /*
+ * TWL6030 PM Master module register offsets (use TWL_MODULE_PM_MASTER)
+ */
+
+#define TWL6030_VBATMIN_HI_THRESHOLD		0x05
+
+/*
  * PM Slave resource module register offsets (use TWL6030_MODULE_SLAVE_RES)
  */
 

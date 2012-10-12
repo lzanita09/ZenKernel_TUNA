@@ -50,7 +50,6 @@ int hsi_set_rx_divisor(struct hsi_port *sport, struct hsr_ctx *cfg)
 		} else if (cfg->divisor != HSI_HSR_DIVISOR_AUTO) {
 			/* Divisor set mode: use counters */
 			/* Leave auto mode: use new counters values */
-			cfg->counters = 0xFFFFF;
 			sport->reg_counters = cfg->counters;
 			sport->counters_on = 1;
 			hsi_outl(cfg->counters, base,
@@ -260,6 +259,7 @@ int hsi_open(struct hsi_device *dev)
 	struct hsi_channel *ch;
 	struct hsi_port *port;
 	struct hsi_dev *hsi_ctrl;
+	int err;
 
 	if (!dev || !dev->ch) {
 		pr_err(LOG_NAME "Wrong HSI device %p\n", dev);
@@ -274,26 +274,69 @@ int hsi_open(struct hsi_device *dev)
 			"registered\n");
 		return -EINVAL;
 	}
-	port = ch->hsi_port;
-	hsi_ctrl = port->hsi_controller;
-
-	spin_lock_bh(&hsi_ctrl->lock);
-	hsi_clocks_enable_channel(dev->device.parent, ch->channel_number,
-				__func__);
-
 	if (ch->flags & HSI_CH_OPEN) {
 		dev_err(dev->device.parent,
 			"Port %d Channel %d already OPENED\n",
 			dev->n_p, dev->n_ch);
-		spin_unlock_bh(&hsi_ctrl->lock);
 		return -EBUSY;
 	}
+
+	port = ch->hsi_port;
+	hsi_ctrl = port->hsi_controller;
+	if (!hsi_ctrl) {
+		dev_err(dev->device.parent,
+			"%s: Port %d Channel %d has no hsi controller?\n",
+			__func__, dev->n_p, dev->n_ch);
+		return -EINVAL;
+	}
+
+	if (hsi_ctrl->clock_rate == 0) {
+		struct hsi_platform_data *pdata;
+
+		pdata = dev_get_platdata(hsi_ctrl->dev);
+		if (!pdata) {
+			dev_err(dev->device.parent,
+				"%s: Port %d Channel %d has no pdata\n",
+				__func__, dev->n_p, dev->n_ch);
+			return -EINVAL;
+		}
+		if (!pdata->device_scale) {
+			dev_err(dev->device.parent,
+			       "%s: Undefined platform device_scale function\n",
+			       __func__);
+			return -ENXIO;
+		}
+
+		/* Retry to set the HSI FCLK to default. */
+		err = pdata->device_scale(hsi_ctrl->dev, hsi_ctrl->dev,
+					  pdata->default_hsi_fclk);
+		if (err) {
+			dev_err(dev->device.parent,
+				"%s: Error %d setting HSI FClk to %ld. "
+				"Will retry on next open\n",
+				__func__, err, pdata->default_hsi_fclk);
+			return err;
+		} else {
+			dev_info(dev->device.parent, "HSI clock is now %ld\n",
+				 pdata->default_hsi_fclk);
+			hsi_ctrl->clock_rate = pdata->default_hsi_fclk;
+		}
+	}
+	spin_lock_bh(&hsi_ctrl->lock);
+	hsi_clocks_enable_channel(dev->device.parent, ch->channel_number,
+				__func__);
 
 	/* Restart with flags cleaned up */
 	ch->flags = HSI_CH_OPEN;
 
-	hsi_driver_enable_interrupt(port, HSI_CAWAKEDETECTED | HSI_ERROROCCURED
-					| HSI_BREAKDETECTED);
+	if (port->wake_rx_3_wires_mode)
+		hsi_driver_enable_interrupt(port, HSI_ERROROCCURED
+						| HSI_BREAKDETECTED);
+	else
+		hsi_driver_enable_interrupt(port, HSI_CAWAKEDETECTED
+						| HSI_ERROROCCURED
+						| HSI_BREAKDETECTED);
+
 
 	/* NOTE: error and break are port events and do not need to be
 	 * enabled for HSI extended enable register */
@@ -312,7 +355,7 @@ EXPORT_SYMBOL(hsi_open);
  * @addr - pointer to a 32-bit word data to be written.
  * @size - number of 32-bit word to be written.
  *
- * Return 0 on sucess, a negative value on failure.
+ * Return 0 on success, a negative value on failure.
  * A success value only indicates that the request has been accepted.
  * Transfer is only completed when the write_done callback is called.
  *
@@ -342,6 +385,13 @@ int hsi_write(struct hsi_device *dev, u32 *addr, unsigned int size)
 	}
 
 	ch = dev->ch;
+	if (ch->write_data.addr != NULL) {
+		dev_err(dev->device.parent, "# Invalid request - Write "
+				"operation pending port %d channel %d\n",
+					ch->hsi_port->port_number,
+					ch->channel_number);
+		return -EINVAL;
+	}
 
 	spin_lock_bh(&ch->hsi_port->hsi_controller->lock);
 	if (pm_runtime_suspended(dev->device.parent) ||
@@ -352,18 +402,6 @@ int hsi_write(struct hsi_device *dev, u32 *addr, unsigned int size)
 
 	hsi_clocks_enable_channel(dev->device.parent,
 				ch->channel_number, __func__);
-
-	if (ch->write_data.addr != NULL) {
-		dev_err(dev->device.parent, "# Invalid request - Write "
-				"operation pending port %d channel %d\n",
-					ch->hsi_port->port_number,
-					ch->channel_number);
-
-		hsi_clocks_disable_channel(dev->device.parent,
-					ch->channel_number, __func__);
-		spin_unlock_bh(&ch->hsi_port->hsi_controller->lock);
-		return -EINVAL;
-	}
 
 	ch->write_data.addr = addr;
 	ch->write_data.size = size;
@@ -669,7 +707,7 @@ EXPORT_SYMBOL(hsi_unpoll);
  * @command - HSI I/O control command
  * @arg - parameter associated to the control command. NULL, if no parameter.
  *
- * Return 0 on sucess, a negative value on failure.
+ * Return 0 on success, a negative value on failure.
  *
  */
 int hsi_ioctl(struct hsi_device *dev, unsigned int command, void *arg)
@@ -707,14 +745,13 @@ int hsi_ioctl(struct hsi_device *dev, unsigned int command, void *arg)
 
 	switch (command) {
 	case HSI_IOCTL_ACWAKE_UP:
+		/* Wake up request to Modem (typically OMAP initiated) */
+		/* Symetrical disable will be done in HSI_IOCTL_ACWAKE_DOWN */
 		if (ch->flags & HSI_CH_ACWAKE) {
 			dev_dbg(dev->device.parent, "Duplicate ACWAKE UP\n");
 			err = -EPERM;
 			goto out;
 		}
-
-		/* Wake up request to Modem (typically OMAP initiated) */
-		/* Symetrical disable will be done in HSI_IOCTL_ACWAKE_DOWN */
 
 		ch->flags |= HSI_CH_ACWAKE;
 		pport->acwake_status |= BIT(channel);
@@ -839,16 +876,45 @@ int hsi_ioctl(struct hsi_device *dev, unsigned int command, void *arg)
 		}
 		*(size_t *)arg = hsi_get_rx_fifo_occupancy(hsi_ctrl, fifo);
 		break;
-	case HSI_IOCTL_SET_ACREADY_SAFEMODE:
-		omap_writel(omap_readl(0x4A1000C8) | 0x7, 0x4A1000C8);
+	case HSI_IOCTL_SET_WAKE_RX_3WIRES_MODE:
+		dev_info(dev->device.parent,
+			 "Entering RX wakeup in 3 wires mode (no CAWAKE)\n");
+		pport->wake_rx_3_wires_mode = 1;
+
+		/* HSI-C1BUG00085: ixxx: HSI wakeup issue in 3 wires mode
+		 * HSI will NOT generate the Swakeup for 2nd frame if it entered
+		 * IDLE after 1st received frame */
+		if (is_hsi_errata(hsi_ctrl, HSI_ERRATUM_ixxx_3WIRES_NO_SWAKEUP))
+			if (hsi_driver_device_is_hsi(to_platform_device
+							(hsi_ctrl->dev)))
+				hsi_set_pm_force_hsi_on(hsi_ctrl);
+
+		/* When WAKE is not available, ACREADY must be set to 1 at
+		 * reset else remote will never have a chance to transmit. */
+		hsi_outl_or(HSI_SET_WAKE_3_WIRES | HSI_SET_WAKE_READY_LVL_1,
+			    base, HSI_SYS_SET_WAKE_REG(port));
+		hsi_driver_disable_interrupt(pport, HSI_CAWAKEDETECTED);
 		break;
-	case HSI_IOCTL_SET_ACREADY_NORMAL:
-		omap_writel(omap_readl(0x4A1000C8) & 0xFFFFFFF9, 0x4A1000C8);
-	case HSI_IOCTL_SET_3WIRE_MODE:
-		omap_writel(0x30000, 0x4A058C08);
-		break;
-	case HSI_IOCTL_SET_4WIRE_MODE:
-		omap_writel((omap_readl(0x4A058C08) & 0xFFFF), 0x4A058C08);
+	case HSI_IOCTL_SET_WAKE_RX_4WIRES_MODE:
+		dev_info(dev->device.parent,
+			 "Entering RX wakeup in 4 wires mode\n");
+		pport->wake_rx_3_wires_mode = 0;
+
+		/* HSI-C1BUG00085: ixxx: HSI wakeup issue in 3 wires mode
+		 * HSI will NOT generate the Swakeup for 2nd frame if it entered
+		 * IDLE after 1st received frame */
+		if (is_hsi_errata(hsi_ctrl, HSI_ERRATUM_ixxx_3WIRES_NO_SWAKEUP))
+			if (hsi_driver_device_is_hsi(to_platform_device
+							(hsi_ctrl->dev)))
+				hsi_set_pm_default(hsi_ctrl);
+
+		/* Clean CA_WAKE status */
+		pport->cawake_status = -1;
+		hsi_outl(HSI_CAWAKEDETECTED, base,
+			 HSI_SYS_MPU_STATUS_REG(port, pport->n_irq));
+		hsi_driver_enable_interrupt(pport, HSI_CAWAKEDETECTED);
+		hsi_outl_and(HSI_SET_WAKE_3_WIRES_MASK,	base,
+			     HSI_SYS_SET_WAKE_REG(port));
 		break;
 	default:
 		err = -ENOIOCTLCMD;
@@ -956,8 +1022,13 @@ void hsi_set_port_event_cb(struct hsi_device *dev,
 	spin_lock_bh(&hsi_ctrl->lock);
 	hsi_clocks_enable_channel(dev->device.parent, dev->ch->channel_number,
 				__func__);
-	hsi_driver_enable_interrupt(port, HSI_CAWAKEDETECTED | HSI_ERROROCCURED
-					| HSI_BREAKDETECTED);
+	if (port->wake_rx_3_wires_mode)
+		hsi_driver_enable_interrupt(port, HSI_ERROROCCURED
+						| HSI_BREAKDETECTED);
+	else
+		hsi_driver_enable_interrupt(port, HSI_CAWAKEDETECTED
+						| HSI_ERROROCCURED
+						| HSI_BREAKDETECTED);
 	hsi_clocks_disable_channel(dev->device.parent, dev->ch->channel_number,
 				__func__);
 	spin_unlock_bh(&hsi_ctrl->lock);

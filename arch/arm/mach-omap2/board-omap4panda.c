@@ -686,8 +686,6 @@ void omap4_panda_display_init(void)
 	omap_mux_init_gpio(HDMI_GPIO_HPD, OMAP_PIN_INPUT_PULLDOWN);
 }
 
-extern void __init omap4_panda_android_init(void);
-
 static void __init omap4_panda_init(void)
 {
 	int package = OMAP_PACKAGE_CBS;
@@ -718,7 +716,6 @@ static void __init omap4_panda_init(void)
 
 	omap_dmm_init();
 	omap4_panda_display_init();
-
 }
 
 static void __init omap4_panda_map_io(void)

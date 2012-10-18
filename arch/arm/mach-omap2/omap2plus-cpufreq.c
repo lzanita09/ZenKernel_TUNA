@@ -42,6 +42,13 @@
 
 #include "dvfs.h"
 
+#ifdef CONFIG_CUSTOM_VOLTAGE
+#include <linux/custom_voltage.h>
+#endif
+#ifdef CONFIG_LIVE_OC
+#include <linux/live_oc.h>
+#endif
+
 #ifdef CONFIG_SMP
 struct lpj_info {
 	unsigned long	ref;
@@ -63,7 +70,9 @@ static unsigned int max_thermal;
 static unsigned int max_capped;
 static unsigned int max_freq;
 static unsigned int current_target_freq;
+#ifdef CONFIG_OMAP_SCREENOFF_MAXFREQ
 static unsigned int screen_off_max_freq;
+#endif
 static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 
@@ -155,7 +164,7 @@ static unsigned int omap_thermal_lower_speed(void)
 	unsigned int curr;
 	int i;
 
-	curr = max_thermal;
+	curr = omap_getspeed(0);
 
 	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
 		if (freq_table[i].frequency > max &&
@@ -235,6 +244,10 @@ static int omap_target(struct cpufreq_policy *policy,
 	unsigned int i;
 	int ret = 0;
 
+#ifdef CONFIG_LIVE_OC
+	mutex_lock(&omap_cpufreq_lock);
+#endif
+
 	if (!freq_table) {
 		dev_err(mpu_dev, "%s: cpu%d: no freq table!\n", __func__,
 				policy->cpu);
@@ -249,7 +262,9 @@ static int omap_target(struct cpufreq_policy *policy,
 		return ret;
 	}
 
+#ifndef CONFIG_LIVE_OC
 	mutex_lock(&omap_cpufreq_lock);
+#endif
 
 	current_target_freq = freq_table[i].frequency;
 
@@ -262,6 +277,7 @@ static int omap_target(struct cpufreq_policy *policy,
 	return ret;
 }
 
+#ifdef CONFIG_OMAP_SCREENOFF_MAXFREQ
 static void omap_cpu_early_suspend(struct early_suspend *h)
 {
 	unsigned int cur;
@@ -301,6 +317,7 @@ static struct early_suspend omap_cpu_early_suspend_handler = {
 	.suspend = omap_cpu_early_suspend,
 	.resume = omap_cpu_late_resume,
 };
+#endif
 
 static inline void freq_table_free(void)
 {
@@ -339,8 +356,8 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
 
-	policy->min = policy->cpuinfo.min_freq;
-	policy->max = policy->cpuinfo.max_freq;
+	policy->min = 384000;
+	policy->max = 1230000;
 	policy->cur = omap_getspeed(policy->cpu);
 
 	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
@@ -377,6 +394,7 @@ static int omap_cpu_exit(struct cpufreq_policy *policy)
 	return 0;
 }
 
+#ifdef CONFIG_OMAP_SCREENOFF_MAXFREQ
 static ssize_t show_screen_off_freq(struct cpufreq_policy *policy, char *buf)
 {
 	return sprintf(buf, "%u\n", screen_off_max_freq);
@@ -419,6 +437,27 @@ struct freq_attr omap_cpufreq_attr_screen_off_freq = {
 	.show = show_screen_off_freq,
 	.store = store_screen_off_freq,
 };
+#endif
+
+#ifdef CONFIG_CUSTOM_VOLTAGE
+static ssize_t show_UV_mV_table(struct cpufreq_policy * policy, char * buf)
+{
+    return customvoltage_mpuvolt_read(NULL, NULL, buf);
+}
+
+static ssize_t store_UV_mV_table(struct cpufreq_policy * policy, const char * buf, size_t count)
+{
+    return customvoltage_mpuvolt_write(NULL, NULL, buf, count);
+}
+
+static struct freq_attr omap_UV_mV_table = {
+    .attr = {.name = "UV_mV_table",
+	     .mode=0644,
+    },
+    .show = show_UV_mV_table,
+    .store = store_UV_mV_table,
+};
+#endif
 
 /*
  * OMAP4 MPU voltage control via cpufreq by Michael Huang (coolbho3k)
@@ -524,12 +563,18 @@ static struct freq_attr omap_uv_mv_table = {
 	.store = store_uv_mv_table,
 };
 
+#if defined(CONFIG_OMAP_SCALING_FREQS) || defined(CONFIG_OMAP_SCREENOFF_MAXFREQ)
 static struct freq_attr *omap_cpufreq_attr[] = {
+#ifdef CONFIG_OMAP_SCALING_FREQS
 	&cpufreq_freq_attr_scaling_available_freqs,
+#endif
+#ifdef CONFIG_OMAP_SCREENOFF_MAXFREQ
 	&omap_cpufreq_attr_screen_off_freq,
+#endif
 	&omap_uv_mv_table,
 	NULL,
 };
+#endif
 
 static struct cpufreq_driver omap_driver = {
 	.flags		= CPUFREQ_STICKY,
@@ -539,7 +584,9 @@ static struct cpufreq_driver omap_driver = {
 	.init		= omap_cpu_init,
 	.exit		= omap_cpu_exit,
 	.name		= "omap2plus",
+#if defined(CONFIG_OMAP_SCALING_FREQS) || defined(CONFIG_OMAP_SCREENOFF_MAXFREQ)
 	.attr		= omap_cpufreq_attr,
+#endif
 };
 
 static int omap_cpufreq_suspend_noirq(struct device *dev)
@@ -601,7 +648,9 @@ static int __init omap_cpufreq_init(void)
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_OMAP_SCREENOFF_MAXFREQ
 	register_early_suspend(&omap_cpu_early_suspend_handler);
+#endif
 
 	ret = cpufreq_register_driver(&omap_driver);
 	omap_cpufreq_ready = !ret;
@@ -626,7 +675,9 @@ static void __exit omap_cpufreq_exit(void)
 {
 	cpufreq_unregister_driver(&omap_driver);
 
+#ifdef CONFIG_OMAP_SCREENOFF_MAXFREQ
 	unregister_early_suspend(&omap_cpu_early_suspend_handler);
+#endif
 	platform_driver_unregister(&omap_cpufreq_platform_driver);
 	platform_device_unregister(&omap_cpufreq_device);
 }

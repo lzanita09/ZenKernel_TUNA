@@ -605,14 +605,15 @@ static void __exit dsscomp_exit(void)
 static char dump_buf[64 * 1024];
 void dsscomp_kdump(void)
 {
-#ifdef CONFIG_DSSCOMP_DEBUG_LOG
 	struct seq_file s = {
 		.buf = dump_buf,
 		.size = sizeof(dump_buf) - 1,
 	};
 	int i;
 
+#ifdef CONFIG_DSSCOMP_DEBUG_LOG
 	dsscomp_dbg_events(&s);
+#endif
 	dsscomp_dbg_comps(&s);
 	dsscomp_dbg_gralloc(&s);
 
@@ -627,7 +628,6 @@ void dsscomp_kdump(void)
 			pr_cont("%s", s.buf + i);
 		}
 	}
-#endif
 }
 EXPORT_SYMBOL(dsscomp_kdump);
 

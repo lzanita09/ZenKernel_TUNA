@@ -374,6 +374,14 @@ config OMAP_C4_MPUOSWR
 	  Select this option to enable powering down the MPU logic
 	  in the C4 state reducing the power consumption.
 
+config SMARTREFLEX_DISABLE_HIGHLOWFREQUENCIES
+	bool "Disable SmartReflex for > 1.4GHZ and < 384MHz"
+	default n
+	help
+	  Selecting this option will disable SR for higher
+	  frequencies (1.4GHz+) and lower frequencies
+	  (< 384MHz)
+
 config OMAP_FIQ_DEBUGGER
 	bool "Enable the serial FIQ debugger on OMAP"
 	default y

@@ -129,6 +129,14 @@ config CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND
 	help
           Use the CPUFreq governor 'intellidemand' as default.
 
+config CPU_FREQ_DEFAULT_GOV_LULZACTIVEQ
+	bool "lulzactiveq"
+	select CPU_FREQ_GOV_LULZACTIVEQ
+
+config CPU_FREQ_DEFAULT_GOV_PEGASUSQ
+	bool "pegasusq"
+	select CPU_FREQ_GOV_PEGASUSQ
+
 config CPU_FREQ_DEFAULT_GOV_HOTPLUG
 	bool "hotplug"
 	select CPU_FREQ_GOV_HOTPLUG
@@ -204,6 +212,9 @@ config CPU_FREQ_GOV_ONDEMAND
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_PEGASUSQ
+	tristate "'pegasusq' cpufreq policy governor"
 
 config CPU_FREQ_GOV_INTERACTIVEX
 	tristate "'interactiveX' cpufreq governor"

@@ -372,7 +372,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
                    -fmodulo-sched -fmodulo-sched-allow-regmoves \
 		   -march=armv7-a -mtune=cortex-a9 -mfpu=neon \
 		   -mfloat-abi=softfp -ftree-vectorize \
-                   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
+                   -funswitch-loops -fpredictive-commoning -fgcse-after-reload
 
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=

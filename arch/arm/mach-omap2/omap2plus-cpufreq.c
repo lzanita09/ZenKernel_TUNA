@@ -494,18 +494,26 @@ static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size
 {
 	int prev_oc, ret1, ret2; 
         struct device *dev;
-	unsigned long gpu_freqs[3] = {307200000,384000000,512000000};
+	unsigned long gpu_freqs[6] = 
+		{
+		307200000,
+		384000000,
+		407200000,
+		452000000,
+		484000000,
+		512000000
+		};
 
 	prev_oc = oc_val;
-	if (prev_oc < 0 || prev_oc > 2) {
+	if (prev_oc < 0 || prev_oc > 5) {
 		// shouldn't be here
 		pr_info("[imoseyon] gpu_oc error - bailing\n");	
 		return size;
 	}
-	
+
 	sscanf(buf, "%d\n", &oc_val);
 	if (oc_val < 0 ) oc_val = 0;
-	if (oc_val > 2 ) oc_val = 2;
+	if (oc_val > 5 ) oc_val = 5;
 	if (prev_oc == oc_val) return size;
 
         dev = omap_hwmod_name_get_dev("gpu");
@@ -513,7 +521,7 @@ static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size
         ret2 = opp_enable(dev, gpu_freqs[oc_val]);
         pr_info("[imoseyon] gpu top speed changed from %lu to %lu (%d,%d)\n", 
 		gpu_freqs[prev_oc], gpu_freqs[oc_val], ret1, ret2);
-	
+
 	return size;
 }
 static ssize_t show_uv_mv_table(struct cpufreq_policy *policy, char *buf)
@@ -674,7 +682,8 @@ static int __init omap_cpufreq_init(void)
 {
 	int ret;
 
-	oc_val = 0;
+	//--Default 384MHz
+	oc_val = 1;
 
 	if (cpu_is_omap24xx())
 		mpu_clk_name = "virt_prcm_set";

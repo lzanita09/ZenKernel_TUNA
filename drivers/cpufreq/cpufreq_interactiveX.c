@@ -89,7 +89,7 @@ static unsigned long timer_rate;
 static int cpufreq_governor_interactivex(struct cpufreq_policy *policy,
 		unsigned int event);
 
-#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
+#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 static
 #endif
 struct cpufreq_governor cpufreq_gov_interactivex = {
@@ -746,7 +746,7 @@ err_freeuptask:
 	return -ENOMEM;
 }
 
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
+#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 fs_initcall(cpufreq_interactivex_init);
 #else
 module_init(cpufreq_interactivex_init);

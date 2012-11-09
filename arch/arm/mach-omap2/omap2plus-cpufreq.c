@@ -262,9 +262,7 @@ static int omap_target(struct cpufreq_policy *policy,
 		return ret;
 	}
 
-#ifndef CONFIG_LIVE_OC
 	mutex_lock(&omap_cpufreq_lock);
-#endif
 
 	current_target_freq = freq_table[i].frequency;
 

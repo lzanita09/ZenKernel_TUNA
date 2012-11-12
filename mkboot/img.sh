@@ -1,4 +1,7 @@
 echo "making ramdisk"
+chmod 744 boot.img-ramdisk/sbin/lkflash
+chmod 744 boot.img-ramdisk/sbin/checkv
+chmod 744 boot.img-ramdisk/sbin/checkt
 #./mkbootfs boot.img-ramdisk | gzip > newramdisk.cpio.gz
 cd boot.img-ramdisk
 chmod 750 init* charger

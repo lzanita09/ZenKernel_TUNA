@@ -454,6 +454,7 @@ struct opp {
         struct device_opp *dev_opp;
 };
 
+#if 0
 /*
  * Variable GPU OC - sysfs interface for cycling through different GPU top speeds
  * Author: imoseyon@gmail.com
@@ -500,6 +501,8 @@ static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size
 
 	return size;
 }
+#endif
+
 static ssize_t show_uv_mv_table(struct cpufreq_policy *policy, char *buf)
 {
 	int i = 0;
@@ -594,7 +597,9 @@ static struct freq_attr *omap_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
 	&omap_cpufreq_attr_screen_off_freq,
 	&omap_uv_mv_table,
+#if 0
 	&gpu_oc,
+#endif
 	NULL,
 };
 

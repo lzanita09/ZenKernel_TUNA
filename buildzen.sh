@@ -42,6 +42,9 @@ if [[ $? -ne 0 ]] ; then
 	exit 1
 fi
 
+cp arch/arm/boot/zImage mkboot/
+find . -name "*\.ko" -exec cp {} mkboot/boot.img-ramdisk/system/modules/ \;
+
 cd mkboot
 echo "Creating boot.img"
 ./img.sh

@@ -79,3 +79,7 @@ GTAGS
 *.orig
 *~
 \#*#
+
+# zen files
+mkboot/zImage
+mkboot/boot.img

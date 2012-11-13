@@ -10,7 +10,6 @@ import /init.trace.rc
 
 on early-init
     # Set init and its forked children's oom_adj.
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1200000
     write /proc/1/oom_adj -16
 
     start ueventd
@@ -522,10 +521,6 @@ on property:service.adb.tcp.port=5555
 on property:service.adb.tcp.port=-1
     stop adbd
     start adbd
-
-service lkconfig /sbin/init.d/lkconfig.sh
-    class main
-    oneshot
 
 service run_parts /sbin/bb/busybox run-parts /system/etc/init.d
     class main

@@ -1,8 +1,6 @@
 echo "making ramdisk"
-chmod 744 boot.img-ramdisk/sbin/checkv
-chmod 744 boot.img-ramdisk/sbin/checkt
 #./mkbootfs boot.img-ramdisk | gzip > newramdisk.cpio.gz
-cd boot.img-ramdisk
+cd boot.img-ramdisk-4.2
 chmod 750 init* charger
 chmod 644 default.prop
 chmod 640 fstab.tuna

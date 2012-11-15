@@ -42,11 +42,8 @@ if [[ $? -ne 0 ]] ; then
 	exit 1
 fi
 
-cp arch/arm/boot/zImage mkboot/
-find . -name "*\.ko" -exec cp {} mkboot/boot.img-ramdisk/system/modules/ \;
+cp arch/arm/boot/zImage zip_template/kernel/
+find . -name "*\.ko" -exec cp {} zip_template/system/modules/ \;
 
-cd mkboot
-echo "Creating boot.img"
-./img.sh
-
-cd ..
+zip -r9 zen_unofficial_${2}.zip zip_template/*
+echo "zen_${2}.zip created"

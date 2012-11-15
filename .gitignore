@@ -81,5 +81,4 @@ GTAGS
 \#*#
 
 # zen files
-mkboot/zImage
-mkboot/boot.img
+zip_template/kernel/zImage

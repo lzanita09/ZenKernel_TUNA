@@ -43,9 +43,10 @@ if [[ $? -ne 0 ]] ; then
 fi
 
 cp arch/arm/boot/zImage zip_template/kernel/
+mkdir zip_template/system/modules
 find . -name "*\.ko" -exec cp {} zip_template/system/modules/ \;
 
 cd zip_template
 zip -r9 zen_unofficial_${2}.zip *
 cd ..
-echo "zip_template/zen_${2}.zip created"
+echo "zip_template/zen_unofficial_${2}.zip created"

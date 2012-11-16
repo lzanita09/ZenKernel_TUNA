@@ -45,5 +45,7 @@ fi
 cp arch/arm/boot/zImage zip_template/kernel/
 find . -name "*\.ko" -exec cp {} zip_template/system/modules/ \;
 
-zip -r9 zen_unofficial_${2}.zip zip_template/*
-echo "zen_${2}.zip created"
+cd zip_template
+zip -r9 zen_unofficial_${2}.zip *
+cd ..
+echo "zip_template/zen_${2}.zip created"

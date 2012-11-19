@@ -43,7 +43,7 @@ if [[ $? -ne 0 ]] ; then
 fi
 
 cp arch/arm/boot/zImage zip_template/kernel/
-mkdir zip_template/system/modules
+rm -fr zip_template/system/modules/*
 find . -name "*\.ko" -exec cp {} zip_template/system/modules/ \;
 
 cd zip_template

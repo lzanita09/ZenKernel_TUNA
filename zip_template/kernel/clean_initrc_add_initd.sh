@@ -11,9 +11,9 @@ if [ -z `/tmp/busybox grep init.d init.rc` ]; then
 	echo '    oneshot' >> init.rc
 fi
 # Delete lines that set min/max frequencies (We do this in the kernel)
-/tmp/busybox grep -Ev 'write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq' init.rc > init.rc
-/tmp/busybox grep -Ev 'write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq' init.rc > init.rc
-/tmp/busybox grep -Ev 'write /sys/devices/system/cpu/cpu0/cpufreq/screen_off_max_freq' init.rc > init.rc
+#/tmp/busybox grep -Ev 'write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq' init.rc > init.rc
+#/tmp/busybox grep -Ev 'write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq' init.rc > init.rc
+#/tmp/busybox grep -Ev 'write /sys/devices/system/cpu/cpu0/cpufreq/screen_off_max_freq' init.rc > init.rc
 rm ../boot.img-ramdisk.gz
 /tmp/busybox sh -c "/tmp/busybox find . | /tmp/busybox cpio -o -H newc | /tmp/busybox gzip > ../boot.img-ramdisk.gz"
 cd ..

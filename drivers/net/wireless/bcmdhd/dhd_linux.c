@@ -42,6 +42,8 @@
 #include <linux/ethtool.h>
 #include <linux/fcntl.h>
 #include <linux/fs.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
 
 #include <asm/uaccess.h>
 #include <asm/unaligned.h>
@@ -526,6 +528,9 @@ static void dhd_set_packet_filter(int value, dhd_pub_t *dhd)
 #endif
 }
 
+bool wifi_pm = false;
+module_param(wifi_pm, bool, 0755);
+
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
 	int power_mode = PM_MAX;
@@ -536,6 +541,11 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 
 	DHD_TRACE(("%s: enter, value = %d in_suspend=%d\n",
 		__FUNCTION__, value, dhd->in_suspend));
+
+	if (wifi_pm) {
+		power_mode = PM_FAST;
+		pr_info("[franciscofranco] %p Wi-Fi Power Management policy changed to PM_FAST.", __func__);
+	}
 
 	dhd_suspend_lock(dhd);
 	if (dhd && dhd->up) {

@@ -70,7 +70,7 @@ static unsigned long go_hispeed_load;
 /*
  * The minimum amount of time to spend at a frequency before we can ramp down.
  */
-#define DEFAULT_MIN_SAMPLE_TIME (30 * USEC_PER_MSEC)
+#define DEFAULT_MIN_SAMPLE_TIME (80 * USEC_PER_MSEC)
 static unsigned long min_sample_time;
 
 /*
@@ -192,7 +192,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 			}
 		}
 	} else {
-		new_freq = hispeed_freq * cpu_load / 100;
+		new_freq = pcpu->policy->max * cpu_load / 100;
 	}
 
 	if (new_freq <= hispeed_freq)

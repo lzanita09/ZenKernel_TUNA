@@ -331,7 +331,6 @@ static __used bool wl_is_ibssstarter(struct wl_priv *wl);
  */
 static s32 __wl_cfg80211_up(struct wl_priv *wl);
 static s32 __wl_cfg80211_down(struct wl_priv *wl);
-static s32 wl_add_remove_eventmsg(struct net_device *ndev, u16 event, bool add);
 static bool wl_is_linkdown(struct wl_priv *wl, const wl_event_msg_t *e);
 static bool wl_is_linkup(struct wl_priv *wl, const wl_event_msg_t *e, struct net_device *ndev);
 static bool wl_is_nonetwork(struct wl_priv *wl, const wl_event_msg_t *e);
@@ -3066,23 +3065,6 @@ get_station_err:
 		}
 	}
 
-	return err;
-}
-
-int wl_cfg80211_update_power_mode(struct net_device *dev)
-{
-	int pm = -1;
-	int err;
-
-	err = wldev_ioctl(dev, WLC_GET_PM, &pm, sizeof(pm), false);
-	if (err || (pm == -1)) {
-		WL_ERR(("error (%d)\n", err));
-	} else {
-		pm = (pm == PM_OFF) ? false : true;
-		WL_DBG(("%s: %d\n", __func__, pm));
-		if (dev->ieee80211_ptr)
-			dev->ieee80211_ptr->ps = pm;
-	}
 	return err;
 }
 
@@ -7106,7 +7088,7 @@ static s32 wl_config_ifmode(struct wl_priv *wl, struct net_device *ndev, s32 ift
 	return 0;
 }
 
-static s32 wl_add_remove_eventmsg(struct net_device *ndev, u16 event, bool add)
+s32 wl_add_remove_eventmsg(struct net_device *ndev, u16 event, bool add)
 {
 	s8 iovbuf[WL_EVENTING_MASK_LEN + 12];
 

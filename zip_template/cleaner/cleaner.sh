@@ -21,6 +21,8 @@ rm -rf /data/cron
 # clean LeanKernelTweaks stuff
 rm -f /system/xbin/installbb
 rm -f /system/xbin/leantweaks
+rm -f /system/sbin/init.d/lkconfig.sh
+rm -f /system/sbin/init.d/lk.conf
 rm -rf /data/leantweaks
 
 # clean Trinity stuff
@@ -62,6 +64,7 @@ rm -f $INITD_DIR/007tweaks
 rm -f $INITD_DIR/99nstools
 # lean kernel
 rm -f $INITD_DIR/99lk-gpu
+rm -f $
 # Zen
 rm -f $INITD_DIR/99ZenKernel
 

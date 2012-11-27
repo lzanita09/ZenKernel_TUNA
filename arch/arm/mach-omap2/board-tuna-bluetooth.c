@@ -27,6 +27,7 @@
 #include <linux/rfkill.h>
 #include <linux/platform_device.h>
 #include <linux/wakelock.h>
+#include <linux/moduleparam.h>
 #include <asm/mach-types.h>
 #include <plat/serial.h>
 #include <plat/board-tuna-bluetooth.h>
@@ -43,6 +44,15 @@ static struct regulator *clk32kaudio_reg;
 static bool bt_enabled;
 static bool host_wake_uart_enabled;
 static bool wake_uart_enabled;
+
+
+#ifdef CONFIG_ANDROID41_COMPAT
+int legacy_support = 1;
+#else
+int legacy_support = 0;
+#endif
+
+module_param(legacy_support, int, 0644);
 
 struct bcm_bt_lpm {
 	int wake;
@@ -250,6 +260,10 @@ static int bcm4330_bluetooth_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+	/* I'm not sure why but this is why BT doesn't work on 4.1 roms */
+	if (!legacy_support) {
+		rfkill_set_states(bt_rfkill, true, false);
+	}
 	rc = rfkill_register(bt_rfkill);
 
 	if (unlikely(rc)) {
@@ -261,6 +275,11 @@ static int bcm4330_bluetooth_probe(struct platform_device *pdev)
 
 	rfkill_set_states(bt_rfkill, true, false);
 	bcm4330_bt_rfkill_set_power(NULL, true);
+
+	if (legacy_support) {
+		rfkill_set_states(bt_rfkill, true, false);
+		bcm4330_bt_rfkill_set_power(NULL, true);
+	}
 
 	ret = bcm_bt_lpm_init(pdev);
 	if (ret) {

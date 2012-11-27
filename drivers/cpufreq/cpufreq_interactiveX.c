@@ -162,8 +162,7 @@ static void cpufreq_interactivex_timer(unsigned long data)
 		cpu_load = load_since_change;
 
 	if (cpu_load >= go_hispeed_load) {
-		if (pcpu->target_freq < hispeed_freq &&
-		  hispeed_freq < pcpu->policy->max) {
+		if (pcpu->target_freq <= pcpu->policy->min) {
 			new_freq = hispeed_freq;
 		} else {
                         new_freq = pcpu->policy->max * cpu_load / 100;
@@ -455,7 +454,11 @@ static void interactivex_suspend(int suspend)
 
         if (!enabled) return;
 	  if (!suspend) {
-		if (num_online_cpus() < 2) cpu_up(1);
+		for_each_online_cpu(cpu) {
+			if (cpu == 0) continue;
+			cpu_up(cpu);
+			pr_info("CPU %d awoken!", cpu);
+		}
 		for_each_cpu(cpu, &tmp_mask) {
 		  pcpu = &per_cpu(cpuinfo, cpu);
 		  smp_rmb();
@@ -463,7 +466,6 @@ static void interactivex_suspend(int suspend)
 		    continue;
 		  __cpufreq_driver_target(pcpu->policy, hispeed_freq, CPUFREQ_RELATION_L);
 		}
-                pr_info("[imoseyon] interactivex awake cpu1 up\n");
 	  } else {
 		for_each_cpu(cpu, &tmp_mask) {
 		  pcpu = &per_cpu(cpuinfo, cpu);
@@ -472,8 +474,11 @@ static void interactivex_suspend(int suspend)
 		    continue;
 		  __cpufreq_driver_target(pcpu->policy, suspendfreq, CPUFREQ_RELATION_H);
 		}
-		if (num_online_cpus() > 1) cpu_down(1);
-                pr_info("[imoseyon] interactivex suspended cpu1 down\n");
+		for_each_cpu_not(cpu, cpu_online_mask) {
+			if (cpu == 0) continue;
+			cpu_down(cpu);
+			pr_info("CPU %d down!", cpu);
+		}
 	  }
 }
 

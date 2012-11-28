@@ -83,3 +83,4 @@ GTAGS
 # zen files
 zip_template/kernel/zImage
 *.zip
+zImage

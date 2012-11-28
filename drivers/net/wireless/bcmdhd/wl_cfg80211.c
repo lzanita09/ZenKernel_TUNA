@@ -2708,7 +2708,7 @@ wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 	/* Clean BSSID */
 	bzero(&bssid, sizeof(bssid));
 	if (!wl_get_drv_status(wl, DISCONNECTING, dev))
-		wl_update_prof(wl, dev, NULL, params->bssid, WL_PROF_PENDING_BSSID);
+		wl_update_prof(wl, dev, NULL, (void *)&bssid, WL_PROF_BSSID);
 
 	if (p2p_is_on(wl) && (dev != wl_to_prmry_ndev(wl))) {
 		/* we only allow to connect using virtual interface in case of P2P */
@@ -6564,13 +6564,6 @@ wl_bss_connect_done(struct wl_priv *wl, struct net_device *ndev,
 		wl_notify_escan_complete(wl, ndev, true, true);
 	}
 #endif /* ESCAN_RESULT_PATCH */
-	if (is_zero_ether_addr(curbssid)) {
-		curbssid = wl_read_prof(wl, ndev, WL_PROF_PENDING_BSSID);
-		if (is_zero_ether_addr(curbssid)) {
-			WL_ERR(("Invalid BSSID\n"));
-			curbssid = NULL;
-		}
-	}
 	if (wl_get_drv_status(wl, CONNECTING, ndev)) {
 		wl_clr_drv_status(wl, CONNECTING, ndev);
 		if (completed) {
@@ -8987,12 +8980,6 @@ wl_update_prof(struct wl_priv *wl, struct net_device *ndev,
 			memcpy(profile->bssid, data, ETHER_ADDR_LEN);
 		else
 			memset(profile->bssid, 0, ETHER_ADDR_LEN);
-		break;
-	case WL_PROF_PENDING_BSSID:
-		if (data)
-			memcpy(profile->pending_bssid, data, ETHER_ADDR_LEN);
-		else
-			memset(profile->pending_bssid, 0, ETHER_ADDR_LEN);
 		break;
 	case WL_PROF_SEC:
 		memcpy(&profile->sec, data, sizeof(profile->sec));

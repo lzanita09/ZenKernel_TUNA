@@ -167,9 +167,6 @@ static void cpufreq_interactivex_timer(unsigned long data)
 			new_freq = hispeed_freq;
 		} else {
                         new_freq = pcpu->policy->max * cpu_load / 100;
-
-                        if (new_freq < hispeed_freq)
-                                new_freq = hispeed_freq;
 		}
 	} else {
 		new_freq = hispeed_freq * cpu_load / 100;

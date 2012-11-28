@@ -2708,7 +2708,7 @@ wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 	/* Clean BSSID */
 	bzero(&bssid, sizeof(bssid));
 	if (!wl_get_drv_status(wl, DISCONNECTING, dev))
-		wl_update_prof(wl, dev, NULL, sme->bssid, WL_PROF_PENDING_BSSID);
+		wl_update_prof(wl, dev, NULL, params->bssid, WL_PROF_PENDING_BSSID);
 
 	if (p2p_is_on(wl) && (dev != wl_to_prmry_ndev(wl))) {
 		/* we only allow to connect using virtual interface in case of P2P */

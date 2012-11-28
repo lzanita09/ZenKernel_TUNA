@@ -35,7 +35,6 @@
 #include <linux/swap.h>
 #endif /* CONFIG_ZRAM_FOR_ANDROID */
 
-
 #include "zram_drv.h"
 
 #if defined(CONFIG_ZRAM_LZO)
@@ -736,6 +735,8 @@ int zram_init_device(struct zram *zram)
 	setup_swap_header(zram, swap_header);
 	kunmap(page);
 #endif /* CONFIG_ZRAM_FOR_ANDROID */
+	set_capacity(zram->disk, zram->disksize >> SECTOR_SHIFT);
+
 	/* zram devices sort of resembles non-rotational disks */
 	queue_flag_set_unlocked(QUEUE_FLAG_NONROT, zram->disk->queue);
 
@@ -879,14 +880,14 @@ static int __init zram_init(void)
 	}
 
 	/* Allocate the device array and initialize each one */
-	pr_info("Creating %u devices ...\n", zram_num_devices);
-	zram_devices = kzalloc(zram_num_devices * sizeof(struct zram), GFP_KERNEL);
+	pr_info("Creating %u devices ...\n", num_devices);
+	zram_devices = kzalloc(num_devices * sizeof(struct zram), GFP_KERNEL);
 	if (!zram_devices) {
 		ret = -ENOMEM;
 		goto unregister;
 	}
 
-	for (dev_id = 0; dev_id < zram_num_devices; dev_id++) {
+	for (dev_id = 0; dev_id < num_devices; dev_id++) {
 		ret = create_device(&zram_devices[dev_id], dev_id);
 		if (ret)
 			goto free_devices;
@@ -909,7 +910,7 @@ static void __exit zram_exit(void)
 	int i;
 	struct zram *zram;
 
-	for (i = 0; i < zram_num_devices; i++) {
+	for (i = 0; i < num_devices; i++) {
 		zram = &zram_devices[i];
 
 		destroy_device(zram);

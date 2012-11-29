@@ -452,7 +452,7 @@ static void interactivex_suspend(int suspend)
 
         if (!enabled) return;
 	  if (!suspend) {
-		for_each_online_cpu(cpu) {
+		for_each_cpu_not(cpu, cpu_online_mask) {
 			if (cpu == 0) continue;
 			cpu_up(cpu);
 			pr_info("CPU %d awoken!", cpu);
@@ -472,7 +472,7 @@ static void interactivex_suspend(int suspend)
 		    continue;
 		  __cpufreq_driver_target(pcpu->policy, suspendfreq, CPUFREQ_RELATION_H);
 		}
-		for_each_cpu_not(cpu, cpu_online_mask) {
+		for_each_online_cpu(cpu) {
 			if (cpu == 0) continue;
 			cpu_down(cpu);
 			pr_info("CPU %d down!", cpu);

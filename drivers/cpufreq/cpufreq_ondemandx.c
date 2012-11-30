@@ -479,10 +479,12 @@ static struct attribute_group dbs_attr_group = {
 
 /************************** sysfs end ************************/
 
-static inline dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
+static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 {
 	if (dbs_tuners_ins.powersave_bias)
 		freq = powersave_bias_target(p, freq, CPUFREQ_RELATION_H);
+	else if (p->cur == p->max)
+		return;
 
 	if (suspended && freq > dbs_tuners_ins.suspend_freq) {
 		freq = dbs_tuners_ins.suspend_freq;

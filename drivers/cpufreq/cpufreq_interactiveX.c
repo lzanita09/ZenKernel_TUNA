@@ -59,7 +59,7 @@ static spinlock_t speedchange_cpumask_lock;
 
 // used for suspend code
 static unsigned int enabled = 0;
-static unsigned int suspendfreq = 576000;
+static unsigned int suspendfreq = 729600;
 static unsigned int registration = 0;
 
 /* Hi speed to bump to from lo speed when load burst (default max) */

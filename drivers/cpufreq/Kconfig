@@ -105,6 +105,13 @@ config CPU_FREQ_DEFAULT_GOV_ADAPTIVE
 	  'adaptive' governor for latency-sensitive workloads and demanding
 	  performance.
 
+config CPU_FREQ_DEFAULT_GOV_ADAPTIVEX
+	bool "adaptivex"
+	select CPU_FREQ_GOV_ADAPTIVEX
+	help
+	  Use the CPUFreq governor 'adaptiveX' as default.
+	  'adaptive' with suspend/wake and CPU hotplugging support.
+
 config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	bool "conservative"
 	select CPU_FREQ_GOV_CONSERVATIVE
@@ -145,6 +152,12 @@ config CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND
 	select CPU_FREQ_GOV_INTELLIDEMAND
 	help
           Use the CPUFreq governor 'intellidemand' as default.
+
+config CPU_FREQ_DEFAULT_GOV_INTELLIDEMANDX
+        bool "intellidemandX"
+        select CPU_FREQ_GOV_INTELLIDEMANDX
+        help
+          Use the CPUFreq governor 'intellidemandx' as default.
 
 config CPU_FREQ_DEFAULT_GOV_LULZACTIVEQ
 	bool "lulzactiveq"
@@ -271,6 +284,13 @@ config CPU_FREQ_GOV_INTELLIDEMAND
 	help
 	  'intellidemand' - an intelligent ondemand governor
 
+config CPU_FREQ_GOV_INTELLIDEMANDX
+        tristate "'intellidemandX' cpufreq governor"
+        depends on CPU_FREQ
+        help
+          'intellidemandx' - an intelligent ondemand governor with
+	  early suspend/wake code and CPU hotplugging.
+
 config CPU_FREQ_GOV_ADAPTIVE
 	tristate "'adaptive' cpufreq policy governor"
 	help
@@ -291,6 +311,11 @@ config CPU_FREQ_GOV_ADAPTIVE
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_ADAPTIVEX
+	tristate "'adaptiveX' cpufreq policy governor"
+	help
+	  'adaptive' with suspend/wake/hotplugging support.
 
 config CPU_FREQ_GOV_CONSERVATIVE
 	tristate "'conservative' cpufreq governor"

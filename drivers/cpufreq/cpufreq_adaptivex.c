@@ -85,7 +85,10 @@ struct cpu_dbs_info_s {
 	struct cpufreq_policy *cur_policy;
 	struct delayed_work work;
 	struct cpufreq_frequency_table *freq_table;
+	unsigned int freq_lo;
+	unsigned int freq_lo_jiffies;
 	unsigned int freq_hi_jiffies;
+	unsigned int rate_mult;
 	int cpu;
 	unsigned int sample_type:1;
 	bool adaptive;
@@ -160,27 +163,25 @@ static void adaptivex_suspend(int suspend)
 		for_each_cpu_not(cpu, cpu_online_mask) {
 			if (cpu == 0) continue;
 			cpu_up(cpu);
-			pr_info("CPU %d awoken!", cpu);
+			pr_info("[adaptiveX] CPU %d awoken!", cpu);
 		}
 		for_each_cpu(cpu, &tmp_mask) {
-			dbs_info = &per_cpu(cpuinfo, cpu);
+			dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 			smp_rmb();
-			if (!dbs_info->governor_enabled) continue;
 			__cpufreq_driver_target(dbs_info->cur_policy, dbs_info->cur_policy->max,
 				CPUFREQ_RELATION_L);
 		}
 	} else {
 		suspended = 1;
 		for_each_cpu(cpu, &tmp_mask) {
-			dbs_info = &per_cpu(cpuinfo, cpu);
+			dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 			smp_rmb();
-			if (!dbs_info->governor_enabled) continue;
 			__cpufreq_driver_target(dbs_info->cur_policy, dbs_tuners_ins.suspend_freq, CPUFREQ_RELATION_H);
 		}
 		for_each_online_cpu(cpu) {
 			if (cpu == 0) continue;
 			cpu_down(cpu);
-			pr_info("CPU %d down!", cpu);
+			pr_info("[adaptiveX] CPU %d down!", cpu);
 		}
 	}
 }
@@ -343,11 +344,7 @@ static ssize_t store_sampling_rate(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.sampling_rate = max(input, min_sampling_rate);
-	mutex_unlock(&dbs_mutex);
-
 	return count;
 }
 
@@ -361,9 +358,7 @@ static ssize_t store_io_is_busy(struct kobject *a, struct attribute *b,
 	if (ret != 1)
 		return -EINVAL;
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.io_is_busy = !!input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -380,9 +375,7 @@ static ssize_t store_up_threshold(struct kobject *a, struct attribute *b,
 		return -EINVAL;
 	}
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.up_threshold = input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -402,9 +395,7 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 	if (input > 1)
 		input = 1;
 
-	mutex_lock(&dbs_mutex);
 	if (input == dbs_tuners_ins.ignore_nice) { /* nothing to do */
-		mutex_unlock(&dbs_mutex);
 		return count;
 	}
 	dbs_tuners_ins.ignore_nice = input;
@@ -419,7 +410,6 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 			dbs_info->prev_cpu_nice = kstat_cpu(j).cpustat.nice;
 
 	}
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -447,7 +437,7 @@ static ssize_t store_suspend_freq(struct kobject *a, struct attribute *b,
 {
 	unsigned int freq;
 	int ret, index;
-	struct cpu_dbs_info_s *dbs_info = &per_cpu(&per_cpu(od_cpu_dbs_info, smp_processor_id());
+	struct cpu_dbs_info_s *dbs_info = &per_cpu(od_cpu_dbs_info, smp_processor_id());
 
 	ret = sscanf(buf, "%u", &freq);
 
@@ -624,6 +614,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	unsigned int index, new_freq;
 	unsigned int longterm_load = 0;
 
+	this_dbs_info->freq_lo = 0;
 	policy = this_dbs_info->cur_policy;
 
 	/*
@@ -745,6 +736,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		freq_next = max_load_freq /
 				(dbs_tuners_ins.up_threshold -
 				 dbs_tuners_ins.down_differential);
+
+		/* No longer fully busy, reset rate_mult */
+		this_dbs_info->rate_mult = 1;
 
 		if (freq_next < policy->min)
 			freq_next = policy->min;
@@ -911,6 +905,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			}
 		}
 		this_dbs_info->cpu = cpu;
+		this_dbs_info->rate_mult = 1;
 		adaptivex_init_cpu(cpu);
 		adaptivex_powersave_bias_init_cpu(cpu);
 

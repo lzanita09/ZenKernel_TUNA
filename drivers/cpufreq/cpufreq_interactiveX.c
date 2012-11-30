@@ -455,7 +455,7 @@ static void interactivex_suspend(int suspend)
 		for_each_cpu_not(cpu, cpu_online_mask) {
 			if (cpu == 0) continue;
 			cpu_up(cpu);
-			pr_info("CPU %d awoken!", cpu);
+			pr_info("[interactiveX] CPU %d awoken!", cpu);
 		}
 		for_each_cpu(cpu, &tmp_mask) {
 		  pcpu = &per_cpu(cpuinfo, cpu);
@@ -475,7 +475,7 @@ static void interactivex_suspend(int suspend)
 		for_each_online_cpu(cpu) {
 			if (cpu == 0) continue;
 			cpu_down(cpu);
-			pr_info("CPU %d down!", cpu);
+			pr_info("[interactiveX] CPU %d down!", cpu);
 		}
 	  }
 }

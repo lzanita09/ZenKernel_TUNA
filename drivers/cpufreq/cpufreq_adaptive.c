@@ -211,9 +211,7 @@ static ssize_t store_sampling_rate(struct kobject *a, struct attribute *b,
 	if (ret != 1)
 		return -EINVAL;
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.sampling_rate = max(input, min_sampling_rate);
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -228,9 +226,7 @@ static ssize_t store_io_is_busy(struct kobject *a, struct attribute *b,
 	if (ret != 1)
 		return -EINVAL;
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.io_is_busy = !!input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -247,9 +243,7 @@ static ssize_t store_up_threshold(struct kobject *a, struct attribute *b,
 		return -EINVAL;
 	}
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.up_threshold = input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -269,9 +263,7 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 	if (input > 1)
 		input = 1;
 
-	mutex_lock(&dbs_mutex);
 	if (input == dbs_tuners_ins.ignore_nice) { /* nothing to do */
-		mutex_unlock(&dbs_mutex);
 		return count;
 	}
 	dbs_tuners_ins.ignore_nice = input;
@@ -286,7 +278,6 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 			dbs_info->prev_cpu_nice = kstat_cpu(j).cpustat.nice;
 
 	}
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }

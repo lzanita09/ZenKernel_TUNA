@@ -292,9 +292,7 @@ static ssize_t store_sampling_rate(struct kobject *a, struct attribute *b,
 	if (ret != 1)
 		return -EINVAL;
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.sampling_rate = max(input, min_sampling_rate);
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -309,9 +307,7 @@ static ssize_t store_io_is_busy(struct kobject *a, struct attribute *b,
 	if (ret != 1)
 		return -EINVAL;
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.io_is_busy = !!input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -328,9 +324,7 @@ static ssize_t store_up_threshold(struct kobject *a, struct attribute *b,
 		return -EINVAL;
 	}
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.up_threshold = input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -343,7 +337,6 @@ static ssize_t store_sampling_down_factor(struct kobject *a,
 
 	if (ret != 1 || input > MAX_SAMPLING_DOWN_FACTOR || input < 1)
 		return -EINVAL;
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.sampling_down_factor = input;
 
 	/* Reset down sampling multiplier in case it was active */
@@ -352,7 +345,6 @@ static ssize_t store_sampling_down_factor(struct kobject *a,
 		dbs_info = &per_cpu(od_cpu_dbs_info, j);
 		dbs_info->rate_mult = 1;
 	}
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -372,9 +364,7 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 	if (input > 1)
 		input = 1;
 
-	mutex_lock(&dbs_mutex);
 	if (input == dbs_tuners_ins.ignore_nice) { /* nothing to do */
-		mutex_unlock(&dbs_mutex);
 		return count;
 	}
 	dbs_tuners_ins.ignore_nice = input;
@@ -389,7 +379,6 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 			dbs_info->prev_cpu_nice = kstat_cpu(j).cpustat.nice;
 
 	}
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -407,10 +396,8 @@ static ssize_t store_powersave_bias(struct kobject *a, struct attribute *b,
 	if (input > 1000)
 		input = 1000;
 
-	mutex_lock(&dbs_mutex);
 	dbs_tuners_ins.powersave_bias = input;
 	intellidemand_powersave_bias_init();
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -422,15 +409,12 @@ static ssize_t store_down_differential(struct kobject *a, struct attribute *b,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
-	mutex_lock(&dbs_mutex);
 	if (ret != 1 || input >= dbs_tuners_ins.up_threshold ||
 			input < MIN_FREQUENCY_DOWN_DIFFERENTIAL) {
-		mutex_unlock(&dbs_mutex);
 		return -EINVAL;
 	}
 
 	dbs_tuners_ins.down_differential = input;
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }

@@ -151,27 +151,25 @@ static void intellidemandx_suspend(int suspend)
 		for_each_cpu_not(cpu, cpu_online_mask) {
 			if (cpu == 0) continue;
 			cpu_up(cpu);
-			pr_info("CPU %d awoken!", cpu);
+			pr_info("[intellidemandX] CPU %d awoken!", cpu);
 		}
 		for_each_cpu(cpu, &tmp_mask) {
-			dbs_info = &per_cpu(cpuinfo, cpu);
+			dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 			smp_rmb();
-			if (!dbs_info->governor_enabled) continue;
 			__cpufreq_driver_target(dbs_info->cur_policy, dbs_info->cur_policy->max,
 				CPUFREQ_RELATION_L);
 		}
 	} else {
 		suspended = 1;
 		for_each_cpu(cpu, &tmp_mask) {
-			dbs_info = &per_cpu(cpuinfo, cpu);
+			dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 			smp_rmb();
-			if (!dbs_info->governor_enabled) continue;
 			__cpufreq_driver_target(dbs_info->cur_policy, dbs_tuners_ins.suspend_freq, CPUFREQ_RELATION_H);
 		}
 		for_each_online_cpu(cpu) {
 			if (cpu == 0) continue;
 			cpu_down(cpu);
-			pr_info("CPU %d down!", cpu);
+			pr_info("[intellidemandX] CPU %d down!", cpu);
 		}
 	}
 }
@@ -484,7 +482,7 @@ static ssize_t store_suspend_freq(struct kobject *a, struct attribute *b,
 {
 	unsigned int freq;
 	int ret, index;
-	struct cpu_dbs_info_s *dbs_info = &per_cpu(&per_cpu(od_cpu_dbs_info, smp_processor_id());
+	struct cpu_dbs_info_s *dbs_info = &per_cpu(od_cpu_dbs_info, smp_processor_id());
 
 	ret = sscanf(buf, "%u", &freq);
 
@@ -855,7 +853,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		mutex_init(&this_dbs_info->timer_mutex);
 		dbs_timer_init(this_dbs_info);
 		cpufreq_gov_lcd_status = 1;
-		register_early_suspend(&ondemandx_power_suspend);
+		register_early_suspend(&intellidemandx_power_suspend);
 		break;
 
 	case CPUFREQ_GOV_STOP:
@@ -869,7 +867,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			sysfs_remove_group(cpufreq_global_kobject,
 					   &dbs_attr_group);
 
-		unregister_early_suspend(&ondemandx_power_suspend);
+		unregister_early_suspend(&intellidemandx_power_suspend);
 		break;
 
 	case CPUFREQ_GOV_LIMITS:
